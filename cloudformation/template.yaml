@@ -14,7 +14,8 @@ Parameters:
 Resources:
   AppBucket:
     Type: AWS::S3::Bucket
-    DependsOn: ReplicationRole
+    # Removed explicit DependsOn to fix circular dependency (TASK-ed8e85c4e224, TASK-814bd399f386)
+    # Implicit dependency via !GetAtt ReplicationRole.Arn in ReplicationConfiguration handles ordering
     Properties:
       BucketName: sample-app-bucket-12345
       # Fix CWE-284: Remove public ACL, use private access with OwnershipControls

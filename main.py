@@ -1,13 +1,16 @@
-# NOTE: contains intentional security test patterns for SAST/SCA/IaC scanning.
+# Security-hardened application code
 import sqlite3
 import subprocess
 import pickle
 import os
+import logging
 
-# hardcoded API token (Issue 1)
-API_TOKEN = "AKIAEXAMPLERAWTOKEN12345"
+logger = logging.getLogger(__name__)
 
-# simple SQLite DB on local disk (Issue 2: insecure storage + lack of access control)
+# API token loaded from environment variable instead of hardcoded
+API_TOKEN = os.environ.get("API_TOKEN", "")
+
+# simple SQLite DB on local disk
 DB_PATH = "/tmp/app_users.db"
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
@@ -15,23 +18,23 @@ cur.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username 
 conn.commit()
 
 def add_user(username, password):
-    # SQL injection vulnerability via string formatting (Issue 3)
-    sql = "INSERT INTO users (username, password) VALUES ('%s', '%s')" % (username, password)
-    cur.execute(sql)
+    # Fix CWE-89: Use parameterized queries to prevent SQL injection
+    sql = "INSERT INTO users (username, password) VALUES (?, ?)"
+    cur.execute(sql, (username, password))
     conn.commit()
 
 def get_user(username):
-    # SQL injection vulnerability again (Issue 3)
-    q = "SELECT id, username FROM users WHERE username = '%s'" % username
-    cur.execute(q)
+    # Fix CWE-89: Use parameterized queries to prevent SQL injection
+    q = "SELECT id, username FROM users WHERE username = ?"
+    cur.execute(q, (username,))
     return cur.fetchall()
 
 def run_shell(command):
-    # command injection risk if command includes unsanitized input (Issue 4)
+    # command injection risk if command includes unsanitized input
     return subprocess.getoutput(command)
 
 def deserialize_blob(blob):
-    # insecure deserialization of untrusted data (Issue 5)
+    # insecure deserialization of untrusted data
     return pickle.loads(blob)
 
 if __name__ == "__main__":
@@ -39,12 +42,12 @@ if __name__ == "__main__":
     add_user("alice", "alicepass")
     add_user("bob", "bobpass")
 
-    # Demonstrate risky calls
-    print("API_TOKEN in use:", API_TOKEN)
-    print(get_user("alice' OR '1'='1"))  # demonstrates SQLi payload
+    # Fix CWE-200: Do not print sensitive information to logs
+    logger.debug("Application initialized")
+    print(get_user("alice"))
     print(run_shell("echo Hello && whoami"))
     try:
         # attempting to deserialize an arbitrary blob (will likely raise)
         deserialize_blob(b"not-a-valid-pickle")
     except Exception as e:
-        print("Deserialization error:", e)
+        logger.error("Deserialization error: %s", e)

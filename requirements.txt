@@ -1,5 +1,5 @@
-# NOTE: intentionally includes older dependencies for dependency-scanning tests.
-Flask==1.0.2       # older Flask release
-requests==2.18.4   # older requests with known issues
-PyYAML==3.13       # older PyYAML (unsafe load risks in some usage)
-boto3==1.7.0       # older boto3 version
+# Dependencies updated to fix known CVEs
+Flask>=2.3.2       # CVE-2023-30861: session cookie caching vulnerability
+requests>=2.20.0   # CVE-2018-18074: credential leak on redirect
+PyYAML>=6.0.1      # CVE-2020-14343, CVE-2017-18342: arbitrary code execution
+boto3>=1.26.0      # updated to compatible version
